@@ -1,0 +1,45 @@
+# 📌 Báo cáo tiến độ tuần 4
+
+## 1. Thông tin chung
+- **Tên đề tài:** Xây dựng website bán sản phẩm cà phê giải khát  
+- **Người thực hiện:** DK23TTC13 – Nguyễn Phạm Tiến Đạt  
+- **Giảng viên hướng dẫn:** Thầy Đoàn Phước Miền
+
+---
+
+## 2. Công việc đã hoàn thành
+- Hoàn thiện chức năng **giỏ hàng** (thêm, xóa, cập nhật số lượng sản phẩm)  
+- Xây dựng chức năng **đặt hàng** và lưu đơn hàng vào cơ sở dữ liệu  
+- Tích hợp chức năng **phân quyền** (Admin / User)  
+- Xây dựng chức năng **quản lý đơn hàng** cho Admin (xem, cập nhật trạng thái đơn hàng)  
+- Hoàn thành giao diện chi tiết sản phẩm và một số trang phụ (Liên hệ, Giới thiệu)  
+
+---
+
+## 3. Công việc đang thực hiện
+- Kiểm thử các chức năng chính (đăng nhập, giỏ hàng, đặt hàng, quản lý đơn hàng)  
+- Viết báo cáo chương 4: **Xây dựng hệ thống**  
+- Thực hiện thống kê doanh thu cơ bản cho Admin  
+
+---
+
+## 4. Kế hoạch tuần tới
+- Hoàn thiện kiểm thử toàn bộ hệ thống  
+- Viết báo cáo chương 5: **Kiểm thử và đánh giá**  
+- Chuẩn bị demo sản phẩm  
+
+---
+
+## 5. Khó khăn, vướng mắc
+- Một số lỗi nhỏ khi xử lý đơn hàng (tính tổng tiền khi cập nhật giỏ hàng)  
+- Chưa kịp tối ưu hiệu năng khi số lượng sản phẩm lớn  
+
+---
+
+## 6. Ghi chú
+- Tập trung nhiều hơn vào kiểm thử để đảm bảo demo không gặp sự cố  
+
+---
+
+✍️ **Người lập báo cáo:** Nguyễn Phạm Tiến Đạt
+📅 **Ngày báo cáo:** 17/08/2025
