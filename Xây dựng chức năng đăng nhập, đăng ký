@@ -1,0 +1,44 @@
+# 📌 Báo cáo tiến độ tuần 2
+
+## 1. Thông tin chung
+- **Tên đề tài:** Xây dựng website bán sản phẩm cà phê giải khát  
+- **Người thực hiện:** DK23TTC13 – Nguyễn Phạm Tiến Đạt  
+- **Giảng viên hướng dẫn:** Thầy Đoàn Phước Miền
+
+---
+
+## 2. Công việc đã hoàn thành
+- Hoàn thành sơ đồ Use Case mô tả chức năng hệ thống  
+- Thiết kế sơ đồ ERD cho cơ sở dữ liệu  
+- Tạo các bảng dữ liệu cơ bản trong SQL Server (User, Product, Order, OrderDetail)  
+- Phác thảo giao diện trang chủ và trang sản phẩm bằng Figma  
+
+---
+
+## 3. Công việc đang thực hiện
+- Xây dựng chức năng **đăng ký/đăng nhập** người dùng  
+- Xây dựng chức năng **quản lý sản phẩm (thêm/sửa/xóa)** cho Admin  
+- Kết nối cơ sở dữ liệu với backend ASP.NET Core  
+
+---
+
+## 4. Kế hoạch tuần tới
+- Hoàn thiện chức năng đăng ký/đăng nhập  
+- Hoàn thiện chức năng quản lý sản phẩm  
+- Bắt đầu xây dựng giỏ hàng và chức năng đặt hàng  
+- Chuẩn bị viết báo cáo **Chương 3: Phân tích & Thiết kế hệ thống**  
+
+---
+
+## 5. Khó khăn, vướng mắc
+- Việc tích hợp Entity Framework với SQL Server còn gặp lỗi migration    
+
+---
+
+## 6. Ghi chú 
+- Tăng số lần commit để theo dõi tiến độ tốt hơn  
+
+---
+
+✍️ **Người lập báo cáo:** Nguyễn Phạm Tiến Đạt 
+📅 **Ngày báo cáo:** 24/08/2025
