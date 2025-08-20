@@ -1,0 +1,38 @@
+# 📌 Báo cáo tiến độ tuần 5
+
+## 1. Thông tin chung
+- **Tên đề tài:** Xây dựng website bán sản phẩm cà phê giải khát  
+- **Người thực hiện:** DK23TTC13 – Nguyễn Phạm Tiến Đạt  
+- **Giảng viên hướng dẫn:** Thầy Đoàn Phước Miền 
+
+## 2. Công việc đã thực hiện
+- **Kiểm thử toàn bộ hệ thống**:
+  - Đăng ký, đăng nhập, phân quyền (Khách hàng / Admin).  
+  - Thêm sản phẩm, giỏ hàng, đặt hàng.  
+  - Quản lý sản phẩm, danh mục, đơn hàng.  
+  - Kiểm tra hiển thị trên nhiều trình duyệt và thiết bị (PC, mobile).  
+
+- **Hoàn thiện chức năng bổ sung**:
+  - Thống kê doanh thu theo ngày / tháng.  
+  - Hiển thị danh sách sản phẩm bán chạy.  
+  - Trang liên hệ (form gửi phản hồi).  
+
+- **Chuẩn bị báo cáo tổng kết**:
+  - Viết báo cáo word/pdf.  
+  - Bổ sung ảnh chụp màn hình giao diện chính (khách hàng + admin).  
+  - Mô tả chức năng, cơ sở dữ liệu và quy trình thực hiện.  
+
+## 3. Khó khăn gặp phải
+- Một số lỗi nhỏ khi hiển thị dữ liệu thống kê.  
+- Cần tối ưu tốc độ tải trang khi số lượng sản phẩm nhiều.  
+
+## 4. Kế hoạch hoàn tất
+- Đóng gói source code và upload đầy đủ lên GitHub.  
+- Hoàn thiện báo cáo chính thức để nộp.    
+
+## 5. Ghi chú khác
+- Đã commit đầy đủ lần cuối vào GitHub (source code hoàn chỉnh).  
+- Repository đã có đủ `README.md` và các báo cáo tiến độ.  
+- Sẵn sàng cho buổi báo cáo đồ án.
+✍️ **Người lập báo cáo:** Nguyễn Phạm Tiến Đạt 
+📅 **Ngày báo cáo:** 20/08/2025
