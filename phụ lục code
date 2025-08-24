@@ -1,0 +1,1749 @@
+Code trang dang-nhap.aspx:
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="dang-nhap.aspx.cs" Inherits="CoffeeShop.dang_nhap" %>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title>Đăng nhập - Tiến Đạt Coffee</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background-color: #f9f9f9; color: #333; }
+        .header { background-color: #3e2723; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .header .logo { font-size: 24px; font-weight: bold; }
+        .header nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 16px; }
+        .main-content { padding: 40px; display: flex; justify-content: center; align-items: center; min-height: 60vh; }
+        
+        .login-container {
+            width: 400px;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .login-container h2 { text-align: center; color: #3e2723; margin-top: 0; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group .form-control { box-sizing: border-box; width: 100%; padding: 12px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; }
+        .btn-login { width: 100%; background-color: #795548; color: white; border: none; padding: 15px; border-radius: 5px; cursor: pointer; font-size: 18px; font-weight: bold; }
+        .error-message { text-align: center; margin-top: 15px; }
+        
+        .footer { text-align: center; padding: 20px; background-color: #3e2723; color: #ccc; }
+    </style>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <header class="header">
+            <div class="logo">Tiến Đạt Coffee</div>
+            <nav>
+                <a href="trang-chu.aspx">Trang Chủ</a>
+                <a href="san-pham.aspx">Sản Phẩm</a>
+                <a href="gio-hang.aspx">Giỏ Hàng</a>
+                <a href="dang-nhap.aspx">Đăng Nhập</a>
+            </nav>
+        </header>
+
+        <main class="main-content">
+            <div class="login-container">
+                <h2>Đăng Nhập Quản Trị</h2>
+                <div class="form-group">
+                    <label for="txtTenDangNhap">Tên đăng nhập</label>
+                    <asp:TextBox ID="txtTenDangNhap" runat="server" CssClass="form-control"></asp:TextBox>
+                </div>
+                <div class="form-group">
+                    <label for="txtMatKhau">Mật khẩu</label>
+                    <asp:TextBox ID="txtMatKhau" runat="server" CssClass="form-control" TextMode="Password"></asp:TextBox>
+                </div>
+                <div class="form-group">
+                    <asp:Button ID="btnLogin" runat="server" Text="Đăng nhập" CssClass="btn-login" OnClick="btnLogin_Click" />
+                </div>
+                <div class="error-message">
+                    <%-- SỬA LỖI Ở ĐÂY: Thay Literal bằng Label --%>
+                    <asp:Label ID="litError" runat="server" ForeColor="Red"></asp:Label>
+                </div>
+            </div>
+        </main>
+        <footer class="footer">
+            &copy; 2025 - Bản quyền thuộc về Tiến Đạt Coffee.
+        </footer>
+    </form>
+</body>
+</html>
+Code trang dang-nhap.aspx.cs:
+using System;
+using System.Configuration;
+using System.Data.SqlClient;
+
+namespace CoffeeShop
+{
+    public partial class dang_nhap : System.Web.UI.Page
+    {
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            // Nếu người dùng đã đăng nhập thì chuyển hướng luôn, tránh đăng nhập lại
+            if (Session["User_TenDangNhap"] != null)
+            {
+                Response.Redirect("quan-ly-don-hang.aspx");
+            }
+        }
+
+        protected void btnLogin_Click(object sender, EventArgs e)
+        {
+            string username = txtTenDangNhap.Text.Trim();
+            string password = txtMatKhau.Text; 
+
+            // Gọi hàm kiểm tra thông tin đăng nhập
+            ValidateUser(username, password);
+        }
+
+        private void ValidateUser(string username, string password)
+        {
+            string connectionString = ConfigurationManager.ConnectionStrings["QuanLyCafeDB_ConnectionString"].ConnectionString;
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                // Câu lệnh SQL kiểm tra trực tiếp TenDangNhap và MatKhau (dạng plaintext)
+                // Đồng thời kiểm tra TrangThai = 1 để chắc chắn tài khoản đang hoạt động
+                string query = "SELECT TenDangNhap, HoTen, LoaiTaiKhoan FROM TaiKhoan WHERE TenDangNhap = @Username AND MatKhau = @Password AND TrangThai = 1";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    // Sử dụng tham số để tránh lỗi SQL Injection
+                    cmd.Parameters.AddWithValue("@Username", username);
+                    cmd.Parameters.AddWithValue("@Password", password);
+
+                    try
+                    {
+                        con.Open();
+                        SqlDataReader reader = cmd.ExecuteReader();
+
+                        // Nếu tìm thấy một dòng khớp với thông tin đăng nhập
+                        if (reader.Read())
+                        {
+                            // Lưu thông tin người dùng vào Session để sử dụng ở các trang khác
+                            Session["User_TenDangNhap"] = reader["TenDangNhap"].ToString();
+                            Session["User_HoTen"] = reader["HoTen"].ToString();
+                            Session["User_LoaiTaiKhoan"] = Convert.ToInt32(reader["LoaiTaiKhoan"]);
+
+                            // Đăng nhập thành công, chuyển hướng đến trang quản lý đơn hàng
+                            Response.Redirect("quan-ly-don-hang.aspx");
+                        }
+                        else
+                        {
+                            // Nếu không tìm thấy, hiển thị thông báo lỗi
+                            litError.Text = "Tên đăng nhập hoặc mật khẩu không đúng.";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        litError.Text = "Lỗi kết nối cơ sở dữ liệu: " + ex.Message;
+                    }
+                }
+            }
+        }
+    }
+}
+Code trang gio-hang.aspx:
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="gio-hang.aspx.cs" Inherits="CoffeeShop.gio_hang" %>
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title>Giỏ hàng - Tiến Đạt Coffee</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background-color: #f9f9f9; color: #333; }
+        .header { background-color: #3e2723; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .header .logo { font-size: 24px; font-weight: bold; }
+        .header nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 16px; }
+        .main-content { padding: 20px 40px; min-height: 60vh; }
+        .main-content h1 { color: #5d4037; }
+        .cart-container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+        .cart-grid { width: 100%; border-collapse: collapse; }
+        .cart-grid th, .cart-grid td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; }
+        .cart-grid th { background-color: #efebe9; }
+        .cart-grid img { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; }
+        .quantity-box { width: 50px; text-align: center; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .cart-actions { margin-top: 20px; text-align: right; display: flex; justify-content: flex-end; gap: 10px; }
+        .btn { background-color: #795548; color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-size: 16px; text-decoration: none; display: inline-block; }
+        .btn-checkout { background-color: #c0392b; }
+        .footer { text-align: center; padding: 20px; background-color: #3e2723; color: #ccc; margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <header class="header">
+            <div class="logo">Tiến Đạt Coffee</div>
+            <nav>
+                <a href="trang-chu.aspx">Trang Chủ</a>
+                <a href="san-pham.aspx">Sản Phẩm</a>
+                <a href="gio-hang.aspx">Giỏ Hàng</a>
+                <a href="dang-nhap.aspx">Đăng Nhập</a>
+            </nav>
+        </header>
+
+        <main class="main-content">
+            <h1>Giỏ Hàng Của Bạn</h1>
+            <div class="cart-container">
+                <asp:GridView ID="gvCart" runat="server" AutoGenerateColumns="False" DataKeyNames="MaSP"
+                    CssClass="cart-grid" ShowFooter="true" OnRowCommand="gvCart_RowCommand" GridLines="None">
+                    <Columns>
+                        <asp:TemplateField HeaderText="Sản phẩm" ItemStyle-Width="80px">
+                            <ItemTemplate><img src='<%# Eval("HinhAnh") %>' alt='<%# Eval("TenSP") %>' /></ItemTemplate>
+                        </asp:TemplateField>
+                        <asp:BoundField DataField="TenSP" HeaderText="Tên Sản Phẩm" />
+                        <asp:BoundField DataField="DonGia" HeaderText="Đơn Giá" DataFormatString="{0:N0} VNĐ" ItemStyle-Width="150px" />
+                        <asp:TemplateField HeaderText="Số lượng" ItemStyle-Width="120px">
+                            <ItemTemplate><asp:TextBox ID="txtSoLuong" runat="server" Text='<%# Eval("SoLuong") %>' CssClass="quantity-box" TextMode="Number"></asp:TextBox></ItemTemplate>
+                        </asp:TemplateField>
+                        <asp:BoundField DataField="ThanhTien" HeaderText="Thành Tiền" DataFormatString="{0:N0} VNĐ" ItemStyle-Width="150px" />
+                        <asp:TemplateField HeaderText="Xóa" ItemStyle-Width="80px">
+                            <ItemTemplate><asp:LinkButton ID="btnRemove" runat="server" CommandName="RemoveItem" CommandArgument='<%# Eval("MaSP") %>' Text="Xóa" ForeColor="Red"></asp:LinkButton></ItemTemplate>
+                        </asp:TemplateField>
+                    </Columns>
+                </asp:GridView>
+                <asp:Panel ID="pnlEmptyCart" runat="server" Visible="false" Style="text-align: center; padding: 40px;">
+                    <p>Giỏ hàng của bạn đang trống. Hãy quay lại trang sản phẩm để mua hàng!</p>
+                </asp:Panel>
+                <div class="cart-actions" id="divActions" runat="server">
+                    <asp:Button ID="btnUpdateCart" runat="server" Text="Cập nhật giỏ hàng" CssClass="btn" OnClick="btnUpdateCart_Click" />
+                    <asp:Button ID="btnCheckout" runat="server" Text="Tiến hành đặt hàng" CssClass="btn btn-checkout" OnClick="btnCheckout_Click" />
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            &copy; 2025 - Bản quyền thuộc về Tiến Đạt Coffee.
+        </footer>
+    </form>
+</body>
+</html>
+Code trang gio-hang.aspx.cs:
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web.UI.WebControls;
+
+namespace CoffeeShop
+{
+    public partial class gio_hang : System.Web.UI.Page
+    {
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            if (!IsPostBack)
+            {
+                BindCart();
+            }
+        }
+
+        private void BindCart()
+        {
+            var cart = Session["Cart"] as List<CartItem>;
+            if (cart != null && cart.Count > 0)
+            {
+                gvCart.DataSource = cart;
+                gvCart.DataBind();
+
+                decimal total = cart.Sum(item => item.ThanhTien);
+                gvCart.FooterRow.Cells[4].Text = "Tổng Cộng";
+                gvCart.FooterRow.Cells[4].Font.Bold = true;
+                gvCart.FooterRow.Cells[5].Text = total.ToString("N0") + " VNĐ";
+
+                pnlEmptyCart.Visible = false;
+                gvCart.Visible = true;
+                divActions.Visible = true;
+            }
+            else
+            {
+                pnlEmptyCart.Visible = true;
+                gvCart.Visible = false;
+                divActions.Visible = false;
+            }
+        }
+
+        protected void gvCart_RowCommand(object sender, GridViewCommandEventArgs e)
+        {
+            if (e.CommandName == "RemoveItem")
+            {
+                string maSP = e.CommandArgument.ToString();
+                var cart = Session["Cart"] as List<CartItem>;
+                if (cart != null)
+                {
+                    CartItem itemToRemove = cart.SingleOrDefault(r => r.MaSP == maSP);
+                    if (itemToRemove != null) cart.Remove(itemToRemove);
+
+                    Session["Cart"] = cart;
+                    BindCart();
+                }
+            }
+        }
+
+        protected void btnUpdateCart_Click(object sender, EventArgs e)
+        {
+            var cart = Session["Cart"] as List<CartItem>;
+            if (cart != null)
+            {
+                foreach (GridViewRow row in gvCart.Rows)
+                {
+                    string maSP = gvCart.DataKeys[row.RowIndex].Value.ToString();
+                    TextBox txtSoLuong = (TextBox)row.FindControl("txtSoLuong");
+                    int newQuantity = int.Parse(txtSoLuong.Text);
+
+                    CartItem itemToUpdate = cart.SingleOrDefault(r => r.MaSP == maSP);
+                    if (itemToUpdate != null)
+                    {
+                        if (newQuantity > 0) itemToUpdate.SoLuong = newQuantity;
+                        else cart.Remove(itemToUpdate);
+                    }
+                }
+                Session["Cart"] = cart;
+                BindCart();
+            }
+        }
+
+        protected void btnCheckout_Click(object sender, EventArgs e)
+        {
+            Response.Redirect("thanh-toan.aspx");
+        }
+    }
+}
+Code trang quan-ly-don-hang.aspx:
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="quan-ly-don-hang.aspx.cs" Inherits="CoffeeShop.quan_ly_don_hang" %>
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title>Quản lý Đơn hàng - Tiến Đạt Coffee</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background-color: #f4f6f9; }
+        .header { background-color: #3e2723; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .header .logo { font-size: 24px; font-weight: bold; }
+        .header .user-info { display: flex; align-items: center; gap: 15px; }
+        .main-content { padding: 20px 40px; min-height: 70vh; }
+        .main-content h1 { color: #3e2723; }
+        .grid-view { width: 100%; border-collapse: collapse; background-color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .grid-view th { background-color: #efebe9; padding: 12px; text-align: left; }
+        .grid-view td { padding: 12px; border-bottom: 1px solid #eee; }
+        .footer { text-align: center; padding: 20px; background-color: #3e2723; color: #ccc; margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <header class="header">
+            <div class="logo">Quản trị - Tiến Đạt Coffee</div>
+            <div class="user-info">
+                <span>Xin chào, <asp:Label ID="lblHoTen" runat="server" Font-Bold="true"></asp:Label></span>
+                <asp:Button ID="btnLogout" runat="server" Text="Đăng xuất" OnClick="btnLogout_Click" BorderStyle="None" BackColor="#c0392b" ForeColor="White" Padding="8px 15px" style="cursor:pointer;" />
+            </div>
+        </header>
+
+        <main class="main-content">
+            <h1>Danh sách Đơn hàng</h1>
+            <p>
+                <a href="quan-ly-don-hang.aspx">Quản lý Đơn hàng</a> | 
+                <a href="quan-ly-san-pham.aspx">Quản lý Sản phẩm</a>
+                <%-- SỬA LẠI ĐƯỜNG DẪN CHO ĐÚNG TÊN FILE --%>
+                <asp:HyperLink ID="hlQuanLyTaiKhoan" runat="server" NavigateUrl="quan-ly-tai-khoan.aspx"> | Quản lý Tài khoản</asp:HyperLink>
+                <%-- THÊM ĐƯỜNG DẪN CHO TRANG THỐNG KÊ --%>
+                <asp:HyperLink ID="hlThongKe" runat="server" NavigateUrl="thong-ke-doanh-thu.aspx"> | Thống kê</asp:HyperLink>
+            </p>
+            <hr />
+            <br />
+            <asp:GridView ID="gvOrders" runat="server" AutoGenerateColumns="False" CssClass="grid-view"
+                OnRowCommand="gvOrders_RowCommand" DataKeyNames="MaHD">
+                <Columns>
+                    <asp:BoundField DataField="MaHD" HeaderText="Mã HĐ" />
+                    <asp:BoundField DataField="HoTen" HeaderText="Tên Khách Hàng" />
+                    <asp:BoundField DataField="NgayTao" HeaderText="Ngày Tạo" DataFormatString="{0:dd/MM/yyyy HH:mm}" />
+                    <asp:BoundField DataField="TongTien" HeaderText="Tổng Tiền" DataFormatString="{0:N0} VNĐ" />
+                    <asp:TemplateField HeaderText="Trạng Thái">
+                        <ItemTemplate><%# GetStatusText(Eval("TrangThai")) %></ItemTemplate>
+                    </asp:TemplateField>
+                    <asp:TemplateField HeaderText="Hành động">
+                        <ItemTemplate>
+                            <asp:LinkButton ID="btnConfirm" runat="server" CommandName="ConfirmOrder" CommandArgument='<%# Eval("MaHD") %>' Visible='<%# Eval("TrangThai").ToString() == "0" %>'>Xác nhận</asp:LinkButton>
+                            <asp:LinkButton ID="btnComplete" runat="server" CommandName="CompleteOrder" CommandArgument='<%# Eval("MaHD") %>' Visible='<%# Eval("TrangThai").ToString() == "1" %>'>Hoàn thành</asp:LinkButton>
+                        </ItemTemplate>
+                    </asp:TemplateField>
+                </Columns>
+            </asp:GridView>
+        </main>
+
+        <footer class="footer">
+            &copy; 2025 - Bản quyền thuộc về Tiến Đạt Coffee.
+        </footer>
+    </form>
+</body>
+</html>
+Code trang quan-ly-don-hang.aspx.cs:
+using System;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+
+namespace CoffeeShop
+{
+    public partial class quan_ly_don_hang : System.Web.UI.Page
+    {
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            // 1. KIỂM TRA ĐĂNG NHẬP: Nếu chưa đăng nhập, chuyển về trang login
+            if (Session["User_TenDangNhap"] == null)
+            {
+                Response.Redirect("dang-nhap.aspx");
+                return;
+            }
+
+            if (!IsPostBack)
+            {
+                // 2. HIỂN THỊ THÔNG TIN USER
+                lblHoTen.Text = Session["User_HoTen"].ToString();
+
+                // 3. PHÂN QUYỀN: Nếu không phải Admin thì ẩn link Quản lý tài khoản và Thống kê
+                if (Session["User_LoaiTaiKhoan"].ToString() != "1")
+                {
+                    hlQuanLyTaiKhoan.Visible = false;
+                    hlThongKe.Visible = false;
+                }
+
+                // 4. TẢI DỮ LIỆU
+                LoadOrders();
+            }
+        }
+
+        private void LoadOrders()
+        {
+            string connectionString = ConfigurationManager.ConnectionStrings["QuanLyCafeDB_ConnectionString"].ConnectionString;
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                string query = "SELECT hd.MaHD, kh.HoTen, hd.NgayTao, hd.TongTien, hd.TrangThai FROM HoaDon hd JOIN KhachHang kh ON hd.MaKH = kh.MaKH ORDER BY hd.NgayTao DESC";
+                SqlDataAdapter da = new SqlDataAdapter(query, con);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                gvOrders.DataSource = dt;
+                gvOrders.DataBind();
+            }
+        }
+
+        protected string GetStatusText(object status)
+        {
+            int statusCode = Convert.ToInt32(status);
+            switch (statusCode)
+            {
+                case 0: return "<span style='color:orange;'>Đang xử lý</span>";
+                case 1: return "<span style='color:blue;'>Đã xác nhận</span>";
+                case 2: return "<span style='color:green;'>Hoàn thành</span>";
+                default: return "Đã hủy";
+            }
+        }
+
+        protected void gvOrders_RowCommand(object sender, System.Web.UI.WebControls.GridViewCommandEventArgs e)
+        {
+            int maHD = Convert.ToInt32(e.CommandArgument);
+            string tenDangNhap = Session["User_TenDangNhap"].ToString();
+
+            if (e.CommandName == "ConfirmOrder")
+            {
+                UpdateOrderStatus(maHD, 1, tenDangNhap);
+            }
+            else if (e.CommandName == "CompleteOrder")
+            {
+                UpdateOrderStatus(maHD, 2, tenDangNhap);
+            }
+            LoadOrders();
+        }
+
+        private void UpdateOrderStatus(int maHD, int newStatus, string tenDangNhap)
+        {
+            string connectionString = ConfigurationManager.ConnectionStrings["QuanLyCafeDB_ConnectionString"].ConnectionString;
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                string query = "UPDATE HoaDon SET TrangThai = @NewStatus" + (newStatus == 1 ? ", TenDangNhap = @TenDangNhap" : "") + " WHERE MaHD = @MaHD";
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@NewStatus", newStatus);
+                    cmd.Parameters.AddWithValue("@MaHD", maHD);
+                    if (newStatus == 1)
+                    {
+                        cmd.Parameters.AddWithValue("@TenDangNhap", tenDangNhap);
+                    }
+                    con.Open();
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        // 5. HÀM ĐĂNG XUẤT
+        protected void btnLogout_Click(object sender, EventArgs e)
+        {
+            Session.Clear();
+            Session.Abandon();
+            Response.Redirect("dang-nhap.aspx");
+        }
+    }
+}
+Code trang quan-ly-san-pham.aspx:
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="quan-ly-san-pham.aspx.cs" Inherits="CoffeeShop.quan_ly_san_pham" %>
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title>Quản lý Sản phẩm - Tiến Đạt Coffee</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background-color: #f4f6f9; }
+        .header { background-color: #3e2723; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .header .logo { font-size: 24px; font-weight: bold; }
+        .header .user-info { display: flex; align-items: center; gap: 15px; }
+        .main-content { padding: 20px 40px; min-height: 70vh; }
+        .main-content h1, .main-content h2 { color: #3e2723; }
+        .grid-view { width: 100%; border-collapse: collapse; background-color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .grid-view th { background-color: #efebe9; padding: 12px; text-align: left; }
+        .grid-view td { padding: 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        .grid-view img { max-width: 60px; border-radius: 4px; }
+        .grid-view input[type=text], .grid-view input[type=number] { width: 95%; padding: 5px; }
+        .form-add-product { background-color: #fff; padding: 20px; margin-bottom: 30px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { margin-bottom: 5px; font-weight: bold; }
+        .form-group .form-control { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .form-actions { grid-column: 1 / -1; text-align: right; }
+        .btn { border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; color: white; }
+        .btn-add { background-color: #27ae60; }
+        .footer { text-align: center; padding: 20px; background-color: #3e2723; color: #ccc; margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <header class="header">
+            <div class="logo">Quản trị - Tiến Đạt Coffee</div>
+            <div class="user-info">
+                <span>Xin chào, <asp:Label ID="lblHoTen" runat="server" Font-Bold="true"></asp:Label></span>
+                <asp:Button ID="btnLogout" runat="server" Text="Đăng xuất" OnClick="btnLogout_Click" BorderStyle="None" BackColor="#c0392b" ForeColor="White" Padding="8px 15px" style="cursor:pointer;" />
+            </div>
+        </header>
+
+        <main class="main-content">
+            <h1>Quản lý Sản phẩm</h1>
+            <p>
+                <a href="quan-ly-don-hang.aspx">Quản lý Đơn hàng</a> | 
+                <a href="quan-ly-san-pham.aspx">Quản lý Sản phẩm</a>
+                <asp:HyperLink ID="hlQuanLyTaiKhoan" runat="server" NavigateUrl="#"> | Quản lý Tài khoản</asp:HyperLink>
+                <asp:HyperLink ID="hlThongKe" runat="server" NavigateUrl="#"> | Thống kê</asp:HyperLink>
+            </p>
+            <hr />
+            
+            <h2>Thêm Sản phẩm mới</h2>
+            <div class="form-add-product">
+                <div class="form-group"><label>Mã SP:</label>
+                    <%-- CHỈNH SỬA DUY NHẤT: Thêm MaxLength="10" --%>
+                    <asp:TextBox ID="txtMaSP" runat="server" CssClass="form-control" MaxLength="10"></asp:TextBox>
+                </div>
+                <div class="form-group"><label>Tên SP:</label><asp:TextBox ID="txtTenSP" runat="server" CssClass="form-control"></asp:TextBox></div>
+                <div class="form-group"><label>Giá bán:</label><asp:TextBox ID="txtGiaBan" runat="server" TextMode="Number" CssClass="form-control"></asp:TextBox></div>
+                <div class="form-group"><label>Số lượng tồn:</label><asp:TextBox ID="txtSoLuongTon" runat="server" TextMode="Number" CssClass="form-control"></asp:TextBox></div>
+                <div class="form-group" style="grid-column: 2 / 4;"><label>Chọn Hình ảnh:</label><asp:FileUpload ID="fileHinhAnh" runat="server" /></div>
+                <div class="form-actions">
+                    <asp:Button ID="btnThem" runat="server" Text="Thêm mới" OnClick="btnThem_Click" CssClass="btn btn-add" />
+                </div>
+            </div>
+
+            <h2>Danh sách Sản phẩm</h2>
+            <asp:GridView ID="gvProducts" runat="server" AutoGenerateColumns="False" CssClass="grid-view" DataKeyNames="MaSP"
+                OnRowEditing="gvProducts_RowEditing" OnRowUpdating="gvProducts_RowUpdating" OnRowCancelingEdit="gvProducts_RowCancelingEdit" OnRowDeleting="gvProducts_RowDeleting">
+                <Columns>
+                    <asp:BoundField DataField="MaSP" HeaderText="Mã SP" ReadOnly="true" />
+                    <asp:BoundField DataField="TenSP" HeaderText="Tên SP" />
+                    <asp:TemplateField HeaderText="Hình ảnh">
+                        <ItemTemplate><img src='<%# Eval("HinhAnh") %>' alt='<%# Eval("TenSP") %>' /></ItemTemplate>
+                        <EditItemTemplate>
+                            <asp:FileUpload ID="fileHinhAnhEdit" runat="server" /><br />
+                            <small>Ảnh hiện tại:</small><br />
+                            <img src='<%# Eval("HinhAnh") %>' width="50" />
+                            <asp:HiddenField ID="hdnOldImagePath" runat="server" Value='<%# Eval("HinhAnh") %>' />
+                        </EditItemTemplate>
+                    </asp:TemplateField>
+                    <asp:BoundField DataField="GiaBan" HeaderText="Giá" DataFormatString="{0:N0}" />
+                    <asp:BoundField DataField="SoLuongTon" HeaderText="Tồn kho" />
+                    <asp:CheckBoxField DataField="TrangThai" HeaderText="Đang bán?" />
+                    <asp:CommandField ShowEditButton="true" ShowDeleteButton="true" EditText="Sửa" DeleteText="Xóa" UpdateText="Cập nhật" CancelText="Hủy" />
+                </Columns>
+            </asp:GridView>
+        </main>
+
+        <footer class="footer">
+            &copy; 2025 - Bản quyền thuộc về Tiến Đạt Coffee.
+        </footer>
+    </form>
+</body>
+</html>
+Code trang quan-ly-san-pham.aspx.cs:
+using System;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+using System.IO;
+using System.Web.UI.WebControls;
+
+namespace CoffeeShop
+{
+    public partial class quan_ly_san_pham : System.Web.UI.Page
+    {
+        private string connectionString = ConfigurationManager.ConnectionStrings["QuanLyCafeDB_ConnectionString"].ConnectionString;
+
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            if (Session["User_TenDangNhap"] == null)
+            {
+                Response.Redirect("dang-nhap.aspx");
+                return;
+            }
+
+            if (!IsPostBack)
+            {
+                lblHoTen.Text = Session["User_HoTen"].ToString();
+                if (Session["User_LoaiTaiKhoan"].ToString() != "1")
+                {
+                    hlQuanLyTaiKhoan.Visible = false;
+                    hlThongKe.Visible = false;
+                }
+                LoadProducts();
+            }
+        }
+
+        private void LoadProducts()
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                string query = "SELECT * FROM SanPham ORDER BY MaSP";
+                SqlDataAdapter da = new SqlDataAdapter(query, con);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                gvProducts.DataSource = dt;
+                gvProducts.DataBind();
+            }
+        }
+
+        protected void btnThem_Click(object sender, EventArgs e)
+        {
+            string hinhAnhPath = "/Images/Products/default.png";
+            if (fileHinhAnh.HasFile)
+            {
+                // Giữ lại tên file gốc khi upload
+                string fileName = Path.GetFileName(fileHinhAnh.FileName);
+                string serverPath = Server.MapPath("~/Images/Products/") + fileName;
+                fileHinhAnh.SaveAs(serverPath);
+                hinhAnhPath = "/Images/Products/" + fileName;
+            }
+
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                string query = "INSERT INTO SanPham (MaSP, TenSP, GiaBan, SoLuongTon, HinhAnh, TrangThai) VALUES (@MaSP, @TenSP, @GiaBan, @SoLuongTon, @HinhAnh, 1)";
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@MaSP", txtMaSP.Text.Trim());
+                    cmd.Parameters.AddWithValue("@TenSP", txtTenSP.Text.Trim());
+                    cmd.Parameters.AddWithValue("@GiaBan", Convert.ToDecimal(txtGiaBan.Text));
+                    cmd.Parameters.AddWithValue("@SoLuongTon", Convert.ToInt32(txtSoLuongTon.Text));
+                    cmd.Parameters.AddWithValue("@HinhAnh", hinhAnhPath);
+                    con.Open();
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            LoadProducts();
+            txtMaSP.Text = txtTenSP.Text = txtGiaBan.Text = txtSoLuongTon.Text = "";
+        }
+
+        protected void gvProducts_RowEditing(object sender, GridViewEditEventArgs e)
+        {
+            gvProducts.EditIndex = e.NewEditIndex;
+            LoadProducts();
+        }
+
+        protected void gvProducts_RowCancelingEdit(object sender, GridViewCancelEditEventArgs e)
+        {
+            gvProducts.EditIndex = -1;
+            LoadProducts();
+        }
+
+        protected void gvProducts_RowUpdating(object sender, GridViewUpdateEventArgs e)
+        {
+            string maSP = gvProducts.DataKeys[e.RowIndex].Value.ToString();
+            TextBox txtTen = (TextBox)gvProducts.Rows[e.RowIndex].Cells[1].Controls[0];
+            FileUpload fileHinhAnhEdit = (FileUpload)gvProducts.Rows[e.RowIndex].FindControl("fileHinhAnhEdit");
+            HiddenField hdnOldImagePath = (HiddenField)gvProducts.Rows[e.RowIndex].FindControl("hdnOldImagePath");
+            TextBox txtGia = (TextBox)gvProducts.Rows[e.RowIndex].Cells[3].Controls[0];
+            TextBox txtTon = (TextBox)gvProducts.Rows[e.RowIndex].Cells[4].Controls[0];
+            CheckBox chkStatus = (CheckBox)gvProducts.Rows[e.RowIndex].Cells[5].Controls[0];
+
+            string hinhAnhPath = hdnOldImagePath.Value;
+
+            if (fileHinhAnhEdit.HasFile)
+            {
+                // Giữ lại tên file gốc khi upload lúc sửa
+                string fileName = Path.GetFileName(fileHinhAnhEdit.FileName);
+                string serverPath = Server.MapPath("~/Images/Products/") + fileName;
+                fileHinhAnhEdit.SaveAs(serverPath);
+                hinhAnhPath = "/Images/Products/" + fileName;
+            }
+
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                string query = "UPDATE SanPham SET TenSP=@TenSP, GiaBan=@GiaBan, SoLuongTon=@SoLuongTon, TrangThai=@TrangThai, HinhAnh=@HinhAnh WHERE MaSP=@MaSP";
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@TenSP", txtTen.Text);
+                    cmd.Parameters.AddWithValue("@GiaBan", Convert.ToDecimal(txtGia.Text));
+                    cmd.Parameters.AddWithValue("@SoLuongTon", Convert.ToInt32(txtTon.Text));
+                    cmd.Parameters.AddWithValue("@TrangThai", chkStatus.Checked);
+                    cmd.Parameters.AddWithValue("@HinhAnh", hinhAnhPath);
+                    cmd.Parameters.AddWithValue("@MaSP", maSP);
+
+                    con.Open();
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            gvProducts.EditIndex = -1;
+            LoadProducts();
+        }
+
+        protected void gvProducts_RowDeleting(object sender, GridViewDeleteEventArgs e)
+        {
+            string maSP = gvProducts.DataKeys[e.RowIndex].Value.ToString();
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                string query = "UPDATE SanPham SET TrangThai=0 WHERE MaSP=@MaSP";
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@MaSP", maSP);
+                    con.Open();
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            LoadProducts();
+        }
+
+        protected void btnLogout_Click(object sender, EventArgs e)
+        {
+            Session.Clear();
+            Session.Abandon();
+            Response.Redirect("dang-nhap.aspx");
+        }
+    }
+}
+Code trang quan-ly-tai-khoan.aspx:
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="quan-ly-tai-khoan.aspx.cs" Inherits="CoffeeShop.quan_ly_tai_khoan" %>
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title>Quản lý Tài khoản - Tiến Đạt Coffee</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background-color: #f4f6f9; }
+        .header { background-color: #3e2723; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .header .logo { font-size: 24px; font-weight: bold; }
+        .header .user-info { display: flex; align-items: center; gap: 15px; }
+        .main-content { padding: 20px 40px; min-height: 70vh; }
+        .main-content h1, .main-content h2 { color: #3e2723; }
+        .grid-view { width: 100%; border-collapse: collapse; background-color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .grid-view th { background-color: #efebe9; padding: 12px; text-align: left; }
+        .grid-view td { padding: 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        .form-add-account { background-color: #fff; padding: 20px; margin-bottom: 30px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { margin-bottom: 5px; font-weight: bold; }
+        .form-group .form-control { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .form-actions { grid-column: 1 / -1; text-align: right; }
+        .btn { border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; color: white; }
+        .btn-add { background-color: #3498db; }
+        .footer { text-align: center; padding: 20px; background-color: #3e2723; color: #ccc; margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <header class="header">
+            <div class="logo">Quản trị - Tiến Đạt Coffee</div>
+            <div class="user-info">
+                <span>Xin chào, <asp:Label ID="lblHoTen" runat="server" Font-Bold="true"></asp:Label></span>
+                <asp:Button ID="btnLogout" runat="server" Text="Đăng xuất" OnClick="btnLogout_Click" BorderStyle="None" BackColor="#c0392b" ForeColor="White" Padding="8px 15px" style="cursor:pointer;" />
+            </div>
+        </header>
+
+        <main class="main-content">
+            <h1>Quản lý Tài khoản</h1>
+            <p>
+                <a href="quan-ly-don-hang.aspx">Quản lý Đơn hàng</a> | 
+                <a href="quan-ly-san-pham.aspx">Quản lý Sản phẩm</a> |
+                <a href="quan-ly-tai-khoan.aspx">Quản lý Tài khoản</a> |
+                <a href="#">Thống kê</a>
+            </p>
+            <hr />
+            
+            <h2>Thêm Tài khoản Nhân viên mới</h2>
+            <div class="form-add-account">
+                <div class="form-group"><label>Tên đăng nhập:</label><asp:TextBox ID="txtTenDangNhap" runat="server" CssClass="form-control"></asp:TextBox></div>
+                <div class="form-group"><label>Mật khẩu:</label><asp:TextBox ID="txtMatKhau" runat="server" CssClass="form-control" TextMode="Password"></asp:TextBox></div>
+                <div class="form-group"><label>Họ và Tên:</label><asp:TextBox ID="txtHoTen" runat="server" CssClass="form-control"></asp:TextBox></div>
+                <div class="form-actions">
+                    <asp:Label ID="litError" runat="server" ForeColor="Red" style="margin-right:20px;"></asp:Label>
+                    <asp:Button ID="btnThem" runat="server" Text="Thêm tài khoản" OnClick="btnThem_Click" CssClass="btn btn-add" />
+                </div>
+            </div>
+
+            <h2>Danh sách Tài khoản</h2>
+            <asp:GridView ID="gvAccounts" runat="server" AutoGenerateColumns="False" CssClass="grid-view" DataKeyNames="TenDangNhap" OnRowCommand="gvAccounts_RowCommand">
+                <Columns>
+                    <asp:BoundField DataField="TenDangNhap" HeaderText="Tên đăng nhập" />
+                    <asp:BoundField DataField="HoTen" HeaderText="Họ và Tên" />
+                    <asp:TemplateField HeaderText="Loại Tài khoản">
+                        <ItemTemplate><%# Eval("LoaiTaiKhoan").ToString() == "1" ? "Admin" : "Nhân viên" %></ItemTemplate>
+                    </asp:TemplateField>
+                    <asp:TemplateField HeaderText="Trạng thái">
+                        <ItemTemplate><%# (bool)Eval("TrangThai") ? "<span style='color:green;'>Hoạt động</span>" : "<span style='color:red;'>Đã khóa</span>" %></ItemTemplate>
+                    </asp:TemplateField>
+                    <asp:TemplateField HeaderText="Hành động">
+                        <ItemTemplate>
+                            <asp:LinkButton ID="btnToggleLock" runat="server"
+                                CommandName="ToggleLock" CommandArgument='<%# Eval("TenDangNhap") %>'
+                                Text='<%# (bool)Eval("TrangThai") ? "Khóa" : "Mở khóa" %>'
+                                OnClientClick="return confirm('Bạn có chắc chắn muốn thực hiện hành động này?');">
+                            </asp:LinkButton>
+                        </ItemTemplate>
+                    </asp:TemplateField>
+                </Columns>
+            </asp:GridView>
+        </main>
+
+        <footer class="footer">
+            &copy; 2025 - Bản quyền thuộc về Tiến Đạt Coffee.
+        </footer>
+    </form>
+</body>
+</html>
+Code trang quan-ly-tai-khoan.aspx.cs:
+using System;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+using System.Web.UI.WebControls;
+
+namespace CoffeeShop
+{
+    public partial class quan_ly_tai_khoan : System.Web.UI.Page
+    {
+        private string connectionString = ConfigurationManager.ConnectionStrings["QuanLyCafeDB_ConnectionString"].ConnectionString;
+
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            // Bước 1: Kiểm tra đã đăng nhập chưa
+            if (Session["User_TenDangNhap"] == null)
+            {
+                Response.Redirect("dang-nhap.aspx");
+                return;
+            }
+
+            // Bước 2: KIỂM TRA QUYỀN ADMIN - QUAN TRỌNG NHẤT
+            if (Session["User_LoaiTaiKhoan"].ToString() != "1")
+            {
+                // Nếu không phải admin, thông báo lỗi và đá về trang quản lý đơn hàng
+                Response.Write("<script>alert('Bạn không có quyền truy cập trang này!'); window.location='quan-ly-don-hang.aspx';</script>");
+                return;
+            }
+
+            if (!IsPostBack)
+            {
+                lblHoTen.Text = Session["User_HoTen"].ToString();
+                LoadAccounts();
+            }
+        }
+
+        private void LoadAccounts()
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                string query = "SELECT TenDangNhap, HoTen, LoaiTaiKhoan, TrangThai FROM TaiKhoan";
+                SqlDataAdapter da = new SqlDataAdapter(query, con);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                gvAccounts.DataSource = dt;
+                gvAccounts.DataBind();
+            }
+        }
+
+        protected void btnThem_Click(object sender, EventArgs e)
+        {
+            string tenDangNhap = txtTenDangNhap.Text.Trim();
+            string matKhau = txtMatKhau.Text; // Mật khẩu plaintext
+            string hoTen = txtHoTen.Text.Trim();
+
+            if (string.IsNullOrEmpty(tenDangNhap) || string.IsNullOrEmpty(matKhau) || string.IsNullOrEmpty(hoTen))
+            {
+                litError.Text = "Vui lòng điền đầy đủ thông tin.";
+                return;
+            }
+
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                // Mặc định thêm tài khoản mới là nhân viên (LoaiTaiKhoan = 2) và đang hoạt động (TrangThai = 1)
+                string query = "INSERT INTO TaiKhoan(TenDangNhap, MatKhau, HoTen, LoaiTaiKhoan, TrangThai) VALUES(@TenDangNhap, @MatKhau, @HoTen, 2, 1)";
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@TenDangNhap", tenDangNhap);
+                    cmd.Parameters.AddWithValue("@MatKhau", matKhau);
+                    cmd.Parameters.AddWithValue("@HoTen", hoTen);
+                    con.Open();
+                    try
+                    {
+                        cmd.ExecuteNonQuery();
+                        litError.Text = "Thêm tài khoản thành công!";
+                        litError.ForeColor = System.Drawing.Color.Green;
+                    }
+                    catch (SqlException ex)
+                    {
+                        if (ex.Number == 2627) // Lỗi trùng khóa chính (tên đăng nhập)
+                        {
+                            litError.Text = "Lỗi: Tên đăng nhập này đã tồn tại!";
+                        }
+                        else
+                        {
+                            litError.Text = "Lỗi CSDL: " + ex.Message;
+                        }
+                    }
+                }
+            }
+            LoadAccounts();
+            txtTenDangNhap.Text = txtMatKhau.Text = txtHoTen.Text = "";
+        }
+
+        protected void gvAccounts_RowCommand(object sender, GridViewCommandEventArgs e)
+        {
+            if (e.CommandName == "ToggleLock")
+            {
+                string tenDangNhap = e.CommandArgument.ToString();
+
+                // Admin không thể tự khóa tài khoản của chính mình
+                if (tenDangNhap.Equals(Session["User_TenDangNhap"].ToString(), StringComparison.OrdinalIgnoreCase))
+                {
+                    Response.Write("<script>alert('Không thể tự khóa tài khoản Admin đang sử dụng!');</script>");
+                    return;
+                }
+
+                using (SqlConnection con = new SqlConnection(connectionString))
+                {
+                    // Lật trạng thái: Nếu TrangThai là 1 thì thành 0, và ngược lại
+                    string query = "UPDATE TaiKhoan SET TrangThai = CASE WHEN TrangThai = 1 THEN 0 ELSE 1 END WHERE TenDangNhap = @TenDangNhap";
+                    using (SqlCommand cmd = new SqlCommand(query, con))
+                    {
+                        cmd.Parameters.AddWithValue("@TenDangNhap", tenDangNhap);
+                        con.Open();
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                LoadAccounts(); // Tải lại danh sách
+            }
+        }
+
+        protected void btnLogout_Click(object sender, EventArgs e)
+        {
+            Session.Clear();
+            Session.Abandon();
+            Response.Redirect("dang-nhap.aspx");
+        }
+    }
+}
+
+Code trang san-pham.aspx:
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="san-pham.aspx.cs" Inherits="CoffeeShop.san_pham" %>
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title>Sản phẩm - Tiến Đạt Coffee</title>
+    <%-- (Phần <style> giữ nguyên như cũ) --%>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background-color: #f9f9f9; color: #333; }
+        .header { background-color: #3e2723; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .header .logo { font-size: 24px; font-weight: bold; }
+        .header nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 16px; }
+        .main-content { padding: 20px 40px; }
+        .main-content h1 { color: #5d4037; }
+        .search-area { background-color: #efebe9; padding: 20px; margin-bottom: 30px; border-radius: 8px; display: flex; gap: 15px; align-items: center; }
+        .search-area .search-box { flex-grow: 1; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; }
+        .search-area .search-btn { background-color: #795548; color: white; border: none; padding: 10px 25px; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .product-grid { display: flex; flex-wrap: wrap; gap: 25px; justify-content: center; }
+        .product-card { width: 220px; background-color: white; border: 1px solid #eee; border-radius: 8px; padding: 15px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.05); transition: transform 0.2s; }
+        .product-card:hover { transform: translateY(-5px); }
+        .product-card img { width: 100%; height: 180px; object-fit: cover; border-radius: 4px; }
+        .product-card h3 { font-size: 18px; margin: 15px 0 10px 0; color: #3e2723; }
+        .product-card .price { font-size: 16px; font-weight: bold; color: #c0392b; margin-bottom: 15px; }
+        .product-card .btn-add { background-color: #795548; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px; }
+        .footer { text-align: center; padding: 20px; background-color: #3e2723; color: #ccc; margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <header class="header">
+            <div class="logo">Tiến Đạt Coffee</div>
+            <nav>
+                <a href="trang-chu.aspx">Trang Chủ</a>
+                <a href="san-pham.aspx">Sản Phẩm</a>
+                <a href="gio-hang.aspx">Giỏ Hàng</a>
+                <a href="dang-nhap.aspx">Đăng Nhập</a>
+            </nav>
+        </header>
+
+        <main class="main-content">
+            <h1>Tất Cả Sản Phẩm</h1>
+
+            <div class="search-area">
+                <asp:TextBox ID="txtSearch" CssClass="search-box" placeholder="Nhập tên sản phẩm để tìm..." runat="server"></asp:TextBox>
+                <asp:Button ID="btnSearch" CssClass="search-btn" runat="server" Text="Tìm kiếm" OnClick="btnSearch_Click" />
+            </div>
+            
+            <%-- CẬP NHẬT: Thêm OnItemCommand --%>
+            <asp:Repeater ID="rptProducts" runat="server" OnItemCommand="rptProducts_ItemCommand">
+                <HeaderTemplate>
+                    <div class="product-grid">
+                </HeaderTemplate>
+                
+                <ItemTemplate>
+                    <div class="product-card">
+                        <img src='<%# Eval("HinhAnh") %>' alt='<%# Eval("TenSP") %>' />
+                        <h3><%# Eval("TenSP") %></h3>
+                        <p class="price"><%# Eval("GiaBan", "{0:N0} VNĐ") %></p>
+                        <%-- CẬP NHẬT: Thêm CommandName và CommandArgument --%>
+                        <asp:Button CssClass="btn-add" runat="server" Text="Thêm vào giỏ" 
+                            CommandName="AddToCart" CommandArgument='<%# Eval("MaSP") %>' />
+                    </div>
+                </ItemTemplate>
+
+                <FooterTemplate>
+                    </div>
+                </FooterTemplate>
+            </asp:Repeater>
+        </main>
+
+        <footer class="footer">
+            &copy; 2025 - Bản quyền thuộc về Tiến Đạt Coffee.
+        </footer>
+    </form>
+</body>
+</html>
+Code trang san-pham.aspx.cs:
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+using System.Web.UI.WebControls;
+
+namespace CoffeeShop
+{
+    public partial class san_pham : System.Web.UI.Page
+    {
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            if (!IsPostBack)
+            {
+                LoadProducts();
+            }
+        }
+
+        private void LoadProducts(string searchTerm = "")
+        {
+            string connectionString = ConfigurationManager.ConnectionStrings["QuanLyCafeDB_ConnectionString"].ConnectionString;
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                string query = "SELECT MaSP, TenSP, GiaBan, HinhAnh FROM SanPham WHERE TrangThai = 1";
+
+                if (!string.IsNullOrEmpty(searchTerm))
+                {
+                    query += " AND TenSP LIKE @SearchTerm";
+                }
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    if (!string.IsNullOrEmpty(searchTerm))
+                    {
+                        cmd.Parameters.AddWithValue("@SearchTerm", "%" + searchTerm + "%");
+                    }
+
+                    try
+                    {
+                        con.Open();
+                        SqlDataAdapter da = new SqlDataAdapter(cmd);
+                        DataTable dt = new DataTable();
+                        da.Fill(dt);
+
+                        rptProducts.DataSource = dt;
+                        rptProducts.DataBind();
+                    }
+                    catch (Exception ex)
+                    {
+                        Response.Write("Lỗi khi tải sản phẩm: " + ex.Message);
+                    }
+                }
+            }
+        }
+
+        protected void btnSearch_Click(object sender, EventArgs e)
+        {
+            string searchTerm = txtSearch.Text.Trim();
+            LoadProducts(searchTerm);
+        }
+
+        // ===================================================================
+        // == PHẦN CODE MỚI ĐỂ XỬ LÝ GIỎ HÀNG ==
+        // ===================================================================
+
+        protected void rptProducts_ItemCommand(object source, RepeaterCommandEventArgs e)
+        {
+            if (e.CommandName == "AddToCart")
+            {
+                string maSP = e.CommandArgument.ToString();
+
+                var cart = Session["Cart"] as List<CartItem>;
+                if (cart == null)
+                {
+                    cart = new List<CartItem>();
+                }
+
+                CartItem item = cart.Find(p => p.MaSP == maSP);
+                if (item != null)
+                {
+                    item.SoLuong++;
+                }
+                else
+                {
+                    CartItem newItem = GetProductDetails(maSP);
+                    if (newItem != null)
+                    {
+                        cart.Add(newItem);
+                    }
+                }
+
+                Session["Cart"] = cart;
+                Response.Redirect("gio-hang.aspx");
+            }
+        }
+
+        private CartItem GetProductDetails(string maSP)
+        {
+            string connectionString = ConfigurationManager.ConnectionStrings["QuanLyCafeDB_ConnectionString"].ConnectionString;
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                string query = "SELECT TenSP, GiaBan, HinhAnh FROM SanPham WHERE MaSP = @MaSP AND TrangThai = 1";
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@MaSP", maSP);
+                    con.Open();
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            var item = new CartItem
+                            {
+                                MaSP = maSP,
+                                TenSP = reader["TenSP"].ToString(),
+                                DonGia = Convert.ToDecimal(reader["GiaBan"]),
+                                HinhAnh = reader["HinhAnh"].ToString(),
+                                SoLuong = 1
+                            };
+                            return item;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+    }
+}
+Code trang thanh-toan.aspx:
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="thanh-toan.aspx.cs" Inherits="CoffeeShop.thanh_toan" %>
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title>Thanh Toán - Tiến Đạt Coffee</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background-color: #f9f9f9; color: #333; }
+        .header { background-color: #3e2723; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .header .logo { font-size: 24px; font-weight: bold; }
+        .header nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 16px; }
+        .main-content { padding: 20px 40px; min-height: 60vh; }
+        .main-content h1 { color: #5d4037; }
+        .checkout-form { display: flex; flex-wrap: wrap; gap: 30px; }
+        .customer-info { flex: 2; min-width: 300px; }
+        .order-summary { flex: 1; min-width: 280px; background-color: #efebe9; padding: 20px; border-radius: 8px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group .form-control { box-sizing: border-box; width: 100%; padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; }
+        .btn { background-color: #795548; color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-size: 16px; text-decoration: none; display: inline-block; }
+        .btn-order { background-color: #c0392b; width: 100%; font-size: 18px; padding: 15px; }
+        .success-message { border: 1px solid #2e7d32; background-color: #e8f5e9; padding: 30px; text-align: center; font-size: 18px; color: #1b5e20; }
+        .footer { text-align: center; padding: 20px; background-color: #3e2723; color: #ccc; margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <header class="header">
+             <div class="logo">Tiến Đạt Coffee</div>
+            <nav>
+                <a href="trang-chu.aspx">Trang Chủ</a>
+                <a href="san-pham.aspx">Sản Phẩm</a>
+                <a href="gio-hang.aspx">Giỏ Hàng</a>
+                <a href="dang-nhap.aspx">Đăng Nhập</a>
+            </nav>
+        </header>
+
+        <main class="main-content">
+            <asp:Panel ID="pnlCheckout" runat="server">
+                <h1>Thông Tin Đặt Hàng</h1>
+                <div class="checkout-form">
+                    <div class="customer-info">
+                        <h3>Thông tin người nhận</h3>
+                        <div class="form-group">
+                            <label for="txtHoTen">Họ và Tên</label>
+                            <asp:TextBox ID="txtHoTen" runat="server" CssClass="form-control"></asp:TextBox>
+                            <asp:RequiredFieldValidator ErrorMessage="Họ tên là bắt buộc." ControlToValidate="txtHoTen" ForeColor="Red" runat="server" Display="Dynamic" />
+                        </div>
+                        <div class="form-group">
+                            <label for="txtSoDienThoai">Số Điện Thoại</label>
+                            <asp:TextBox ID="txtSoDienThoai" runat="server" CssClass="form-control" TextMode="Phone"></asp:TextBox>
+                            <asp:RequiredFieldValidator ErrorMessage="Số điện thoại là bắt buộc." ControlToValidate="txtSoDienThoai" ForeColor="Red" runat="server" Display="Dynamic" />
+                        </div>
+                        <div class="form-group">
+                            <label for="txtDiaChi">Địa chỉ nhận hàng</label>
+                            <asp:TextBox ID="txtDiaChi" runat="server" CssClass="form-control" TextMode="MultiLine" Rows="3"></asp:TextBox>
+                            <asp:RequiredFieldValidator ErrorMessage="Địa chỉ là bắt buộc." ControlToValidate="txtDiaChi" ForeColor="Red" runat="server" Display="Dynamic" />
+                        </div>
+                    </div>
+                    <div class="order-summary">
+                        <h3>Tóm tắt đơn hàng</h3>
+                        <asp:Literal ID="litOrderSummary" runat="server"></asp:Literal>
+                        <hr />
+                        <h4>Tổng cộng: <asp:Literal ID="litTotal" runat="server"></asp:Literal></h4>
+                        <br />
+                        <asp:Button ID="btnPlaceOrder" runat="server" Text="HOÀN TẤT ĐẶT HÀNG" OnClick="btnPlaceOrder_Click" CssClass="btn btn-order" />
+                    </div>
+                </div>
+            </asp:Panel>
+            <asp:Panel ID="pnlSuccess" runat="server" Visible="false" CssClass="success-message">
+                <asp:Literal ID="litSuccessMessage" runat="server"></asp:Literal>
+            </asp:Panel>
+        </main>
+        
+        <footer class="footer">
+            &copy; 2025 - Bản quyền thuộc về Tiến Đạt Coffee.
+        </footer>
+    </form>
+</body>
+</html>
+Code trang thanh-toan.aspx.cs:
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+
+namespace CoffeeShop
+{
+    public partial class thanh_toan : System.Web.UI.Page
+    {
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            if (!IsPostBack)
+            {
+                var cart = Session["Cart"] as List<CartItem>;
+                if (cart == null || cart.Count == 0)
+                {
+                    Response.Redirect("gio-hang.aspx");
+                    return;
+                }
+
+                var summary = new StringBuilder();
+                foreach (var item in cart)
+                {
+                    summary.AppendFormat("• {0} (x{1})<br/>", item.TenSP, item.SoLuong);
+                }
+                litOrderSummary.Text = summary.ToString();
+                litTotal.Text = cart.Sum(item => item.ThanhTien).ToString("N0") + " VNĐ";
+            }
+        }
+
+        protected void btnPlaceOrder_Click(object sender, EventArgs e)
+        {
+            var cart = Session["Cart"] as List<CartItem>;
+            if (cart == null || cart.Count == 0) return;
+
+            string connectionString = ConfigurationManager.ConnectionStrings["QuanLyCafeDB_ConnectionString"].ConnectionString;
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                con.Open();
+                SqlTransaction transaction = con.BeginTransaction();
+
+                try
+                {
+                    // Bước 1: Thêm Khách Hàng, lấy MaKH vừa tạo
+                    string queryKH = "INSERT INTO KhachHang (HoTen, SoDienThoai, DiaChi) OUTPUT INSERTED.MaKH VALUES (@HoTen, @SoDienThoai, @DiaChi)";
+                    SqlCommand cmdKH = new SqlCommand(queryKH, con, transaction);
+                    cmdKH.Parameters.AddWithValue("@HoTen", txtHoTen.Text.Trim());
+                    cmdKH.Parameters.AddWithValue("@SoDienThoai", txtSoDienThoai.Text.Trim());
+                    cmdKH.Parameters.AddWithValue("@DiaChi", txtDiaChi.Text.Trim());
+                    int maKH = (int)cmdKH.ExecuteScalar();
+
+                    // Bước 2: Thêm Hóa Đơn, lấy MaHD vừa tạo (Trạng thái 0 = Đang xử lý)
+                    string queryHD = "INSERT INTO HoaDon (MaKH, TongTien, TrangThai, NgayTao) OUTPUT INSERTED.MaHD VALUES (@MaKH, @TongTien, 0, GETDATE())";
+                    SqlCommand cmdHD = new SqlCommand(queryHD, con, transaction);
+                    cmdHD.Parameters.AddWithValue("@MaKH", maKH);
+                    cmdHD.Parameters.AddWithValue("@TongTien", cart.Sum(item => item.ThanhTien));
+                    int maHD = (int)cmdHD.ExecuteScalar();
+
+                    // Bước 3: Thêm các sản phẩm trong giỏ vào Chi Tiết Hóa Đơn
+                    foreach (var item in cart)
+                    {
+                        string queryCTHD = "INSERT INTO ChiTietHoaDon (MaHD, MaSP, SoLuong, DonGia) VALUES (@MaHD, @MaSP, @SoLuong, @DonGia)";
+                        SqlCommand cmdCTHD = new SqlCommand(queryCTHD, con, transaction);
+                        cmdCTHD.Parameters.AddWithValue("@MaHD", maHD);
+                        cmdCTHD.Parameters.AddWithValue("@MaSP", item.MaSP);
+                        cmdCTHD.Parameters.AddWithValue("@SoLuong", item.SoLuong);
+                        cmdCTHD.Parameters.AddWithValue("@DonGia", item.DonGia);
+                        cmdCTHD.ExecuteNonQuery();
+                    }
+
+                    transaction.Commit();
+
+                    Session["Cart"] = null; // Xóa giỏ hàng
+                    pnlCheckout.Visible = false;
+                    pnlSuccess.Visible = true;
+                    litSuccessMessage.Text = $"<h2>Đặt hàng thành công!</h2>" +
+                                             $"<p>Cảm ơn bạn đã tin tưởng Tiến Đạt Coffee.</p>" +
+                                             $"<p>Mã số đơn hàng của bạn là: <strong>{maHD}</strong></p>" +
+                                             $"<p>Bạn có thể dùng mã này để theo dõi tình trạng đơn hàng.</p>";
+                }
+                catch (Exception)
+                {
+                    transaction.Rollback();
+                    // Có thể hiển thị một thông báo lỗi thân thiện ở đây
+                    Response.Write("<script>alert('Đã xảy ra lỗi trong quá trình đặt hàng. Vui lòng thử lại.');</script>");
+                }
+            }
+        }
+    }
+}
+Code trang thong-ke-doanh-thu.aspx:
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="thong-ke-doanh-thu.aspx.cs" Inherits="CoffeeShop.thong_ke_doanh_thu" %>
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title>Thống kê Doanh thu - Tiến Đạt Coffee</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background-color: #f4f6f9; }
+        .header { background-color: #3e2723; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .header .logo { font-size: 24px; font-weight: bold; }
+        .header .user-info { display: flex; align-items: center; gap: 15px; }
+        .main-content { padding: 20px 40px; min-height: 70vh; }
+        .main-content h1, .main-content h2 { color: #3e2723; }
+        .filter-area { background-color: #fff; padding: 20px; margin-bottom: 20px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 15px; }
+        .filter-area select, .filter-area .btn { padding: 8px 12px; border-radius: 4px; border: 1px solid #ccc; font-size: 16px; }
+        .btn { background-color: #3498db; color: white; cursor: pointer; border: none; }
+        .summary-panel { display: flex; gap: 20px; margin-bottom: 30px; }
+        .summary-box { flex: 1; background-color: #fff; padding: 20px; text-align: center; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .summary-box .title { font-size: 18px; color: #7f8c8d; }
+        .summary-box .value { font-size: 28px; font-weight: bold; color: #2c3e50; margin-top: 10px; }
+        .grid-view { width: 100%; border-collapse: collapse; background-color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .grid-view th { background-color: #efebe9; padding: 12px; text-align: left; }
+        .grid-view td { padding: 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        .footer { text-align: center; padding: 20px; background-color: #3e2723; color: #ccc; margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <header class="header">
+            <div class="logo">Quản trị - Tiến Đạt Coffee</div>
+            <div class="user-info">
+                <span>Xin chào, <asp:Label ID="lblHoTen" runat="server" Font-Bold="true"></asp:Label></span>
+                <asp:Button ID="btnLogout" runat="server" Text="Đăng xuất" OnClick="btnLogout_Click" BorderStyle="None" BackColor="#c0392b" ForeColor="White" Padding="8px 15px" style="cursor:pointer;" />
+            </div>
+        </header>
+        <main class="main-content">
+            <h1>Thống kê Doanh thu</h1>
+            <p>
+                <a href="quan-ly-don-hang.aspx">Quản lý Đơn hàng</a> |
+                <a href="quan-ly-san-pham.aspx">Quản lý Sản phẩm</a> |
+                <a href="quan-ly-tai-khoan.aspx">Quản lý Tài khoản</a> |
+                <a href="thong-ke-doanh-thu.aspx">Thống kê</a>
+            </p>
+            <hr />
+
+            <div class="filter-area">
+                <label>Chọn tháng:</label>
+                <asp:DropDownList ID="ddlMonth" runat="server"></asp:DropDownList>
+                <label>Chọn năm:</label>
+                <asp:DropDownList ID="ddlYear" runat="server"></asp:DropDownList>
+                <asp:Button ID="btnViewReport" runat="server" Text="Xem báo cáo" OnClick="btnViewReport_Click" CssClass="btn" />
+            </div>
+
+            <asp:Panel ID="pnlReport" runat="server" Visible="false">
+                <h2>Báo cáo Tháng <asp:Literal ID="litSelectedMonth" runat="server"></asp:Literal>/<asp:Literal ID="litSelectedYear" runat="server"></asp:Literal></h2>
+                <div class="summary-panel">
+                    <div class="summary-box">
+                        <div class="title">TỔNG DOANH THU</div>
+                        <div class="value"><asp:Label ID="lblTotalRevenue" runat="server"></asp:Label></div>
+                    </div>
+                    <div class="summary-box">
+                        <div class="title">TỔNG SẢN PHẨM BÁN RA</div>
+                        <div class="value"><asp:Label ID="lblTotalProducts" runat="server"></asp:Label></div>
+                    </div>
+                </div>
+                
+                <br />
+                <h2>Chi tiết các đơn hàng đã hoàn thành</h2>
+                <asp:GridView ID="gvDetailedOrders" runat="server" CssClass="grid-view" AutoGenerateColumns="false">
+                    <Columns>
+                        <asp:BoundField DataField="MaHD" HeaderText="Mã HĐ" />
+                        <asp:BoundField DataField="NgayTao" HeaderText="Ngày hoàn thành" DataFormatString="{0:dd/MM/yyyy HH:mm}" />
+                        <asp:BoundField DataField="HoTen" HeaderText="Tên Khách Hàng" />
+                        <asp:BoundField DataField="TongTien" HeaderText="Giá trị" DataFormatString="{0:N0} VNĐ" />
+                    </Columns>
+                </asp:GridView>
+            </asp:Panel>
+        </main>
+        <footer class="footer">
+            &copy; 2025 - Bản quyền thuộc về Tiến Đạt Coffee.
+        </footer>
+    </form>
+</body>
+</html>
+Code trang thong-ke-doanh-thu.aspx.cs:
+using System;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+using System.Web.UI.WebControls;
+
+namespace CoffeeShop
+{
+    public partial class thong_ke_doanh_thu : System.Web.UI.Page
+    {
+        private string connectionString = ConfigurationManager.ConnectionStrings["QuanLyCafeDB_ConnectionString"].ConnectionString;
+
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            if (Session["User_TenDangNhap"] == null)
+            {
+                Response.Redirect("dang-nhap.aspx");
+                return;
+            }
+
+            if (Session["User_LoaiTaiKhoan"].ToString() != "1")
+            {
+                Response.Write("<script>alert('Bạn không có quyền truy cập trang này!'); window.location='quan-ly-don-hang.aspx';</script>");
+                return;
+            }
+
+            if (!IsPostBack)
+            {
+                lblHoTen.Text = Session["User_HoTen"].ToString();
+                PopulateDateDropDowns();
+            }
+        }
+
+        private void PopulateDateDropDowns()
+        {
+            for (int i = 1; i <= 12; i++)
+            {
+                ddlMonth.Items.Add(new ListItem(i.ToString("00"), i.ToString()));
+            }
+            ddlMonth.SelectedValue = DateTime.Now.Month.ToString();
+
+            int currentYear = DateTime.Now.Year;
+            for (int i = 0; i < 5; i++)
+            {
+                ddlYear.Items.Add((currentYear - i).ToString());
+            }
+        }
+
+        protected void btnViewReport_Click(object sender, EventArgs e)
+        {
+            int month = Convert.ToInt32(ddlMonth.SelectedValue);
+            int year = Convert.ToInt32(ddlYear.SelectedValue);
+
+            litSelectedMonth.Text = month.ToString("00");
+            litSelectedYear.Text = year.ToString();
+
+            LoadSummaryData(month, year);
+            LoadDetailedOrders(month, year);
+
+            pnlReport.Visible = true;
+        }
+
+        private void LoadSummaryData(int month, int year)
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                string query = @"
+                    SELECT 
+                        ISNULL(SUM(hd.TongTien), 0) AS TongDoanhThu,
+                        ISNULL(SUM(ct.SoLuong), 0) AS TongSanPham
+                    FROM HoaDon hd 
+                    LEFT JOIN ChiTietHoaDon ct ON hd.MaHD = ct.MaHD
+                    WHERE hd.TrangThai = 2 
+                      AND MONTH(hd.NgayTao) = @Month 
+                      AND YEAR(hd.NgayTao) = @Year";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@Month", month);
+                    cmd.Parameters.AddWithValue("@Year", year);
+                    con.Open();
+                    SqlDataReader reader = cmd.ExecuteReader();
+                    if (reader.Read())
+                    {
+                        lblTotalRevenue.Text = Convert.ToDecimal(reader["TongDoanhThu"]).ToString("N0") + " VNĐ";
+                        lblTotalProducts.Text = reader["TongSanPham"].ToString();
+                    }
+                }
+            }
+        }
+
+        private void LoadDetailedOrders(int month, int year)
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                string query = @"
+                    SELECT hd.MaHD, hd.NgayTao, kh.HoTen, hd.TongTien
+                    FROM HoaDon hd
+                    INNER JOIN KhachHang kh ON hd.MaKH = kh.MaKH
+                    WHERE hd.TrangThai = 2
+                      AND MONTH(hd.NgayTao) = @Month
+                      AND YEAR(hd.NgayTao) = @Year
+                    ORDER BY hd.NgayTao DESC";
+
+                SqlDataAdapter da = new SqlDataAdapter(query, con);
+                da.SelectCommand.Parameters.AddWithValue("@Month", month);
+                da.SelectCommand.Parameters.AddWithValue("@Year", year);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                gvDetailedOrders.DataSource = dt;
+                gvDetailedOrders.DataBind();
+            }
+        }
+
+        protected void btnLogout_Click(object sender, EventArgs e)
+        {
+            Session.Clear();
+            Session.Abandon();
+            Response.Redirect("dang-nhap.aspx");
+        }
+    }
+}
+Code trang trang-chu.aspx:
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="trang-chu.aspx.cs" Inherits="CoffeeShop.trang_chu" %>
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title>Tiến Đạt Coffee</title>
+    <%-- (Phần <style> giữ nguyên như cũ) --%>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background-color: #f9f9f9; color: #333; }
+        .header { background-color: #3e2723; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .header .logo { font-size: 24px; font-weight: bold; }
+        .header nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 16px; }
+        .main-content { padding: 20px 40px; }
+        .main-content h1 { color: #5d4037; }
+        .product-grid { display: flex; flex-wrap: wrap; gap: 25px; justify-content: center; }
+        .product-card {
+            width: 220px;
+            background-color: white;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+        .product-card:hover { transform: translateY(-5px); }
+        .product-card img { width: 100%; height: 180px; object-fit: cover; border-radius: 4px; }
+        .product-card h3 { font-size: 18px; margin: 15px 0 10px 0; color: #3e2723; }
+        .product-card .price { font-size: 16px; font-weight: bold; color: #c0392b; margin-bottom: 15px; }
+        .product-card .btn {
+            background-color: #795548;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .footer { text-align: center; padding: 20px; background-color: #3e2723; color: #ccc; margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <header class="header">
+            <div class="logo">Tiến Đạt Coffee</div>
+            <nav>
+                <a href="trang-chu.aspx">Trang Chủ</a>
+                <a href="san-pham.aspx">Sản Phẩm</a>
+                <a href="gio-hang.aspx">Giỏ Hàng</a>
+                <a href="dang-nhap.aspx">Đăng Nhập</a>
+            </nav>
+        </header>
+
+        <main class="main-content">
+            <h1>Sản Phẩm Nổi Bật ☕</h1>
+            
+            <%-- CẬP NHẬT: Thêm OnItemCommand vào Repeater --%>
+            <asp:Repeater ID="rptProducts" runat="server" OnItemCommand="rptProducts_ItemCommand">
+                <HeaderTemplate>
+                    <div class="product-grid">
+                </HeaderTemplate>
+                
+                <ItemTemplate>
+                    <div class="product-card">
+                        <img src='<%# Eval("HinhAnh") %>' alt='<%# Eval("TenSP") %>' />
+                        <h3><%# Eval("TenSP") %></h3>
+                        <p class="price"><%# Eval("GiaBan", "{0:N0} VNĐ") %></p>
+                        <%-- CẬP NHẬT: Thêm CommandName và CommandArgument cho nút --%>
+                        <asp:Button CssClass="btn" runat="server" Text="Thêm vào giỏ" 
+                            CommandName="AddToCart" CommandArgument='<%# Eval("MaSP") %>' />
+                    </div>
+                </ItemTemplate>
+
+                <FooterTemplate>
+                    </div>
+                </FooterTemplate>
+            </asp:Repeater>
+
+        </main>
+
+        <footer class="footer">
+            &copy; 2025 - Bản quyền thuộc về Tiến Đạt Coffee.
+        </footer>
+    </form>
+</body>
+</html>
+Code trang trang-chu.aspx.cs:
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+using System.Web.UI.WebControls;
+
+namespace CoffeeShop
+{
+    public partial class trang_chu : System.Web.UI.Page
+    {
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            if (!IsPostBack)
+            {
+                LoadProducts();
+            }
+        }
+
+        private void LoadProducts()
+        {
+            string connectionString = ConfigurationManager.ConnectionStrings["QuanLyCafeDB_ConnectionString"].ConnectionString;
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                string query = "SELECT MaSP, TenSP, GiaBan, HinhAnh FROM SanPham WHERE TrangThai = 1";
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    try
+                    {
+                        con.Open();
+                        SqlDataAdapter da = new SqlDataAdapter(cmd);
+                        DataTable dt = new DataTable();
+                        da.Fill(dt);
+
+                        rptProducts.DataSource = dt;
+                        rptProducts.DataBind();
+                    }
+                    catch (Exception ex)
+                    {
+                        Response.Write("Lỗi khi tải sản phẩm: " + ex.Message);
+                    }
+                }
+            }
+        }
+
+        // ===================================================================
+        // == PHẦN CODE MỚI ĐỂ XỬ LÝ GIỎ HÀNG ==
+        // ===================================================================
+
+        /// <summary>
+        /// Xử lý sự kiện khi nhấn nút "Thêm vào giỏ"
+        /// </summary>
+        protected void rptProducts_ItemCommand(object source, RepeaterCommandEventArgs e)
+        {
+            // Chỉ xử lý khi CommandName là "AddToCart"
+            if (e.CommandName == "AddToCart")
+            {
+                string maSP = e.CommandArgument.ToString();
+
+                // Lấy giỏ hàng từ Session, nếu chưa có thì tạo mới
+                var cart = Session["Cart"] as List<CartItem>;
+                if (cart == null)
+                {
+                    cart = new List<CartItem>();
+                }
+
+                // Tìm xem sản phẩm đã có trong giỏ chưa
+                CartItem item = cart.Find(p => p.MaSP == maSP);
+                if (item != null)
+                {
+                    // Nếu có rồi thì tăng số lượng lên 1
+                    item.SoLuong++;
+                }
+                else
+                {
+                    // Nếu chưa có, lấy thông tin sản phẩm từ DB và thêm vào giỏ hàng
+                    CartItem newItem = GetProductDetails(maSP);
+                    if (newItem != null)
+                    {
+                        cart.Add(newItem);
+                    }
+                }
+
+                // Lưu giỏ hàng trở lại Session
+                Session["Cart"] = cart;
+
+                // Chuyển người dùng đến trang giỏ hàng
+                Response.Redirect("gio-hang.aspx");
+            }
+        }
+
+        /// <summary>
+        /// Lấy thông tin chi tiết của một sản phẩm từ CSDL để thêm vào giỏ hàng
+        /// </summary>
+        /// <param name="maSP">Mã sản phẩm cần lấy</param>
+        /// <returns>Đối tượng CartItem</returns>
+        private CartItem GetProductDetails(string maSP)
+        {
+            string connectionString = ConfigurationManager.ConnectionStrings["QuanLyCafeDB_ConnectionString"].ConnectionString;
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                string query = "SELECT TenSP, GiaBan, HinhAnh FROM SanPham WHERE MaSP = @MaSP AND TrangThai = 1";
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@MaSP", maSP);
+                    con.Open();
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            var item = new CartItem
+                            {
+                                MaSP = maSP,
+                                TenSP = reader["TenSP"].ToString(),
+                                DonGia = Convert.ToDecimal(reader["GiaBan"]),
+                                HinhAnh = reader["HinhAnh"].ToString(),
+                                SoLuong = 1 // Số lượng ban đầu khi thêm vào giỏ là 1
+                            };
+                            return item;
+                        }
+                    }
+                }
+            }
+            return null; // Trả về null nếu không tìm thấy sản phẩm
+        }
+    }
+}
